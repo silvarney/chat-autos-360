@@ -5,7 +5,7 @@ import logging
 import time
 import requests
 from dotenv import load_dotenv
-from logs.log_config import setup_logging
+from .logs.log_config import setup_logging 
 
 # Configuração de logging
 setup_logging()
