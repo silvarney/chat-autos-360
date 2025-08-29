@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+.venv
+venv/
+build/
+dist/
+*.egg-info/
+
+# VSCode
+.vscode/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos de log
+*.log
+
+# Credenciais
+.env.*
+!.env.example
+.envrc
+
+# Outros
+*.sqlite3
+*.db
+
+# Node
+node_modules/

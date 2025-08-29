@@ -1,0 +1,160 @@
+<iframe
+  style="
+    border: none;
+    z-index: 9999;
+    border-radius: 12px;
+    overflow: hidden;
+    background: transparent;
+    position: fixed;
+    right: 20px;
+    bottom: 0px;
+    width: auto;
+    height: 500px;
+    width: 350px;
+  "
+  srcdoc='
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Flutuante</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @keyframes pulse {
+    0% { opacity: 0.2; transform: scale(1); }
+    20% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: 0.2; transform: scale(1); }
+  }
+  .dots-loader span {
+    animation: pulse 1.2s infinite both;
+    font-size: 1.5em;
+    display: inline-block;
+    margin: 0 2px;
+  }
+  .dots-loader span:nth-child(2) { animation-delay: 0.2s; }
+  .dots-loader span:nth-child(3) { animation-delay: 0.4s; }
+  body { background: transparent; margin:0; }
+  #chatWindow { display: none; flex-direction: column; height: 100%; }
+</style>
+</head>
+<body class="bg-transparent h-full">
+<!-- Chat -->
+<div id="chatWindow" class="bg-white rounded-2xl shadow-xl border border-gray-300 flex overflow-hidden h-full">
+  <div class="flex flex-col w-full h-full">
+    <header class="flex items-center p-3 border-b border-gray-200 bg-gray-100">
+      <span class="font-semibold text-sm text-gray-700">Chat</span>
+      <button id="chatClose" class="ml-auto text-gray-500 hover:text-gray-800">✕</button>
+    </header>
+    <div id="chatMessages" class="flex flex-col gap-2 p-3 overflow-y-auto text-sm flex-1 bg-gray-50">
+
+    </div>
+    <form id="chatForm" autocomplete="off" class="flex gap-2 p-3 border-t border-gray-200 bg-gray-100">
+      <input type="text" id="chatText" placeholder="Digite sua mensagem..." required
+        class="flex-1 h-10 bg-white border border-gray-300 rounded-lg px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5C08B2]"/>
+      <button type="submit"
+        class="h-10 px-4 rounded-lg bg-[#5C08B2] text-white font-semibold hover:bg-[#5C08B2] transition">Enviar</button>
+    </form>
+  </div>
+</div>
+<!-- Botão flutuante -->
+<button id="chatLauncher"
+  class="w-[150px] h-14 bg-[#5C08B2] text-white rounded-2xl shadow-lg flex items-center justify-center hover:bg-[#5C08B2] transition fixed bottom-0 right-0">
+  Chat
+</button>
+<script>
+const launcher = document.getElementById("chatLauncher");
+const chatWindow = document.getElementById("chatWindow");
+const closeBtn = document.getElementById("chatClose");
+const form = document.getElementById("chatForm");
+const input = document.getElementById("chatText");
+const messages = document.getElementById("chatMessages");
+// Abrir chat
+launcher.addEventListener("click", () => {
+  launcher.style.display = "none";
+  chatWindow.style.display = "flex";
+});
+// Fechar chat
+closeBtn.addEventListener("click", () => {
+  chatWindow.style.display = "none";
+  launcher.style.display = "flex";
+});
+// Mensagens
+function appendMessage(text, who="user") {
+  const div = document.createElement("div");
+  // Formata texto: quebra de linha e marcadores
+  let formatted = String(text)
+    .replace(/\n/g, "<br>")
+    .replace(/• /g, "<br>&bull; ");
+  div.innerHTML = formatted;
+  div.className = who==="user"
+    ? "self-end bg-gray-200 text-gray-800 rounded-lg px-3 py-2"
+    : "self-start bg-[#5C08B2] text-white rounded-lg px-3 py-2";
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function showLoader() {
+  const loader = document.createElement("div");
+  loader.className = "dots-loader self-start bg-[#5C08B2] text-white rounded-lg px-3 py-2 flex items-center";
+  loader.id = "chat-loader";
+  loader.innerHTML = "<span>.</span><span>.</span><span>.</span>";
+  messages.appendChild(loader);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function removeLoader() {
+  const loader = document.getElementById("chat-loader");
+  if (loader) loader.remove();
+}
+
+let conversationId = null;
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if(!text) return;
+  appendMessage(text, "user");
+  input.value = "";
+  showLoader();
+  let url = "http://127.0.0.1:8000/create_conversation";
+  let payload = { message: text };
+  if (conversationId) {
+    url = "http://127.0.0.1:8000/continue_conversation";
+    payload = { conversation_id: conversationId, message: text };
+  }
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    removeLoader();
+    if (!response.ok) {
+      throw new Error("Erro ao se comunicar com o servidor.");
+    }
+    const data = await response.json();
+    // Espera-se que data.response exista e contenha answer e conversation_id
+    if (data && data.response) {
+      if (data.response.answer) {
+        appendMessage(data.response.answer, "bot");
+      } else {
+        appendMessage("[Resposta recebida]", "bot");
+      }
+      if (data.response.conversation_id) {
+        conversationId = data.response.conversation_id;
+      }
+    } else {
+      appendMessage("[Resposta recebida]", "bot");
+    }
+  } catch (err) {
+    removeLoader();
+    appendMessage("Erro ao enviar mensagem: " + err.message, "bot");
+  }
+});
+</script>
+</body>
+</html>
+'></iframe>
